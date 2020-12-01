@@ -384,6 +384,11 @@ class CourseUpdateResolver(BinnedSchedulesBaseResolver):
             course = schedule.enrollment.course
             user = enrollment.user
 
+            # (Weekly) Course Updates are only for Instructor-paced courses.
+            # See CourseNextSectionUpdate for Self-paced updates.
+            if course.self_paced:
+                continue
+
             try:
                 week_highlights = get_week_highlights(user, enrollment.course_id, week_num)
             except CourseUpdateDoesNotExist:
@@ -476,6 +481,11 @@ class CourseNextSectionUpdate(PrefixedDebugLoggerMixin, RecipientResolver):
             # We don't want to show any updates if the course has ended so we short circuit here.
             if course.end and course.end.date() <= target_date:
                 return
+
+            # Next Section Updates are only for Self-paced courses since it uses Personalized
+            # Learner Schedule logic. See CourseUpdateResolver for Instructor-paced updates
+            if not course.self_paced:
+                continue
 
             user = schedule.enrollment.user
             start_date = max(filter(None, (schedule.start_date, course.start)))
